@@ -12,7 +12,7 @@ export interface Direction {
   y: number;
 }
 
-export type ControlMode = 'menu' | 'manual' | 'ai';
+export type ControlMode = 'menu' | 'manual' | 'ai' | 'rl';
 
 export interface GameState {
   snake: Position[];

@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run code formatting check (black)
+      working-directory: ./backend
+      run: |
+        black --check app tests
+    
+    - name: Run import sorting check (isort)
+      working-directory: ./backend
+      run: |
+        isort --check-only app tests
+    
+    - name: Run code style check (flake8)
+      working-directory: ./backend
+      run: |
+        flake8 app tests || true
+    
+    - name: Run code quality check (pylint)
+      working-directory: ./backend
+      run: |
+        pylint app --exit-zero || true
+    
+    - name: Run type check (mypy)
+      working-directory: ./backend
+      run: |
+        mypy app --ignore-missing-imports || true
+    
+    - name: Run tests
+      working-directory: ./backend
+      run: |
+        pytest tests/ -v --cov=app --cov-report=xml --cov-report=term
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+

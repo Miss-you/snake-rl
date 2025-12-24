@@ -144,19 +144,18 @@ uvicorn app.main:app --reload  # 开发模式（自动重载）
 
 ### 同时运行前后端
 
-**方案1：两个终端窗口**
-- 终端1：运行前端 `npm run dev`
-- 终端2：运行后端 `cd backend && uvicorn app.main:app --reload`
-
-**方案2：使用脚本**
+**方案1：使用脚本（推荐）**
 ```bash
-# 创建 start-all.sh
-#!/bin/bash
-# 前端
-npm run dev &
-# 后端
-cd backend && uvicorn app.main:app --reload
+# 启动所有服务
+./scripts/start-all.sh
+
+# 停止所有服务（在另一个终端）
+./scripts/stop-all.sh
 ```
+
+**方案2：两个终端窗口**
+- 终端1：运行前端 `cd frontend && npm run dev`
+- 终端2：运行后端 `cd backend && source venv/bin/activate && uvicorn app.main:app --reload`
 
 ## 常见问题
 

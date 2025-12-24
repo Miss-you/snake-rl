@@ -33,26 +33,44 @@ snake-demo/
 
 ## 快速开始
 
-### 1. 前端设置
+> 💡 **快速启动**：查看 [QUICKSTART.md](./QUICKSTART.md) 获取5分钟快速启动指南
+
+### 前置要求
+
+- **Node.js** 18+ 和 npm
+- **Python** 3.10+
+- **Git**
+
+### 1. 克隆项目
+
+```bash
+git clone https://github.com/Miss-you/snake-rl.git
+cd snake-rl
+```
+
+### 2. 前端设置
 
 ```bash
 # 进入前端目录
-cd frontend  # 如果前端代码在根目录，则跳过此步骤
+cd frontend
 
 # 安装依赖
 npm install
 
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件，设置 NEXT_PUBLIC_API_URL
+# 创建环境变量文件（如果不存在）
+cat > .env.local << EOF
+NEXT_PUBLIC_API_URL=http://localhost:8000
+EOF
 
 # 启动开发服务器
 npm run dev
 ```
 
-前端将在 http://localhost:3000 运行
+前端将在 **http://localhost:3000** 运行
 
-### 2. 后端设置
+### 3. 后端设置
+
+打开**新的终端窗口**，执行：
 
 ```bash
 # 进入后端目录
@@ -60,26 +78,57 @@ cd backend
 
 # 创建虚拟环境
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 激活虚拟环境
+# macOS/Linux:
+source venv/bin/activate
+# Windows:
+venv\Scripts\activate
 
 # 安装依赖
 pip install -r requirements.txt
 
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件
+# 创建环境变量文件（如果不存在）
+cat > .env << EOF
+API_HOST=0.0.0.0
+API_PORT=8000
+MODEL_DIR=./models
+LOG_LEVEL=info
+CORS_ORIGINS=http://localhost:3000
+EOF
 
 # 启动后端服务
+# macOS/Linux:
+./start.sh
+# Windows:
+start.bat
+# 或手动运行:
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-后端将在 http://localhost:8000 运行
+后端将在 **http://localhost:8000** 运行
 
-### 3. API文档
+### 4. 验证运行
 
-启动后端后访问：
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+1. **访问前端**：打开浏览器访问 http://localhost:3000
+2. **访问后端API文档**：http://localhost:8000/docs
+3. **测试游戏**：在前端页面启动游戏，使用方向键或WASD控制
+
+### 5. 同时运行前后端（推荐）
+
+**方案1：两个终端窗口**
+- 终端1：`cd frontend && npm run dev`
+- 终端2：`cd backend && ./start.sh`（或 `start.bat`）
+
+**方案2：使用脚本（macOS/Linux）**
+
+```bash
+# 启动所有服务
+./scripts/start-all.sh
+
+# 停止所有服务
+./scripts/stop-all.sh
+```
 
 ## 架构说明
 
@@ -106,7 +155,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - ✅ **Next.js 14** - 使用最新的 App Router
 - ✅ **FastAPI** - 高性能的Python Web框架
 - ✅ **前后端分离** - 清晰的职责划分
-- ✅ **RL训练支持** - 支持强化学习模型训练
+- ✅ **RL推理支持** - 前端调用后端模型进行推理（训练在后端）
 - ✅ **AI 模式** - 智能贪吃蛇 AI，支持尾部可达性检查
 - ✅ **人工控制** - 支持方向键和 WASD 控制
 - ✅ **现代化 UI** - 深色主题，流畅动画
@@ -117,6 +166,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - **空格键** - 开始/重新开始游戏
 - **1** - 切换到人工控制模式
 - **2** - 切换到 AI 自动控制模式
+- **3** - 切换到 RL推理模式（训练在后端）
 
 ## 强化学习（Reinforcement Learning）
 
@@ -126,10 +176,11 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 - ✅ **状态提取器** (`lib/rl/stateExtractor.ts`) - 将游戏状态转换为特征向量
 - ✅ **奖励计算器** (`lib/rl/rewardCalculator.ts`) - 根据游戏事件计算奖励
-- ✅ **Q-Learning算法** (`lib/rl/qLearning.ts`) - 基础的强化学习算法实现
 - ✅ **API客户端** (`lib/api/client.ts`) - 与后端通信
-- ✅ **经验收集器** (`lib/api/experienceCollector.ts`) - 收集并发送经验
-- ✅ **RL Agent** (`lib/api/rlAgent.ts`) - 使用后端模型推理
+- ✅ **经验收集器** (`lib/api/experienceCollector.ts`) - 收集并发送经验到后端
+- ✅ **RL推理Agent** (`lib/api/rlAgent.ts`) - 调用后端API进行推理
+- ✅ **RL推理Hook** (`hooks/useRLInference.ts`) - 管理推理状态
+- ⚠️ **Q-Learning参考** (`lib/rl/qLearning.ts`) - 仅作学习参考，**不应在前端使用**
 
 ### 学习资源
 
@@ -137,6 +188,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - 📖 [RL常见问题解答](./docs/rl-faq.md) - 解答常见问题
 - 📖 [RL实施计划](./docs/rl-implementation-plan.md) - 分阶段实施路线图
 - 📖 [架构设计文档](./docs/architecture.md) - 前后端分离架构说明
+- 📖 [RL架构说明](./docs/rl-architecture.md) - RL训练在后端，推理在前端
 
 ## 开发计划
 

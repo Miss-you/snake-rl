@@ -14,6 +14,8 @@ import { placeFood } from '@/lib/game/food';
 import { checkCollision } from '@/lib/game/collision';
 import { computeAIDirection } from '@/lib/game/ai';
 import { config } from '@/lib/game/config';
+import { useRLInference } from './useRLInference';
+import { ExperienceCollector } from '@/lib/api/experienceCollector';
 
 /**
  * 游戏主循环 Hook
@@ -28,6 +30,21 @@ export function useGame() {
   const lastTimeRef = useRef<number>(0);
   const accumulatorRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
+  const previousStateRef = useRef<GameState | null>(null);
+  const episodeStepsRef = useRef<number>(0);
+  const episodeRef = useRef<number>(0);
+  const rlDirectionRef = useRef<Direction | null>(null);
+
+  // RL推理Hook（只负责推理，训练在后端）
+  const rlInference = useRLInference();
+  const experienceCollectorRef = useRef<ExperienceCollector | null>(null);
+
+  // 初始化经验收集器
+  useEffect(() => {
+    if (!experienceCollectorRef.current) {
+      experienceCollectorRef.current = new ExperienceCollector(50); // 每50条经验发送一次
+    }
+  }, []);
 
   // 初始化食物
   useEffect(() => {
@@ -38,6 +55,30 @@ export function useGame() {
       }));
     }
   }, [state.food]);
+
+  // RL推理：异步获取动作
+  useEffect(() => {
+    if (state.controlMode === 'rl' && rlInference.isInferenceMode && state.gameRunning) {
+      rlInference.selectAction(state).then(direction => {
+        rlDirectionRef.current = direction;
+      }).catch(() => {
+        // 如果后端不可用，使用简单规则
+        const { snake, food, direction } = state;
+        if (!food) {
+          rlDirectionRef.current = direction;
+          return;
+        }
+        const head = snake[snake.length - 1];
+        const dx = food.x - head.x;
+        const dy = food.y - head.y;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          rlDirectionRef.current = { x: Math.sign(dx), y: 0 };
+        } else {
+          rlDirectionRef.current = { x: 0, y: Math.sign(dy) };
+        }
+      });
+    }
+  }, [state.controlMode, state.gameRunning, state.snake, state.food, rlInference.isInferenceMode]);
 
   // 游戏主循环
   useEffect(() => {
@@ -68,12 +109,76 @@ export function useGame() {
             };
           }
 
+          // RL推理模式：使用后端模型选择动作
+          if (newState.controlMode === 'rl' && rlInference.isInferenceMode && rlDirectionRef.current) {
+            newState = {
+              ...newState,
+              nextDirection: rlDirectionRef.current,
+            };
+          }
+
           // 更新蛇位置
+          const prevStateForRL = newState.controlMode === 'rl' && rlInference.isInferenceMode 
+            ? { ...newState } 
+            : null;
           newState = updateSnakePosition(newState);
+
+          // RL推理模式：收集经验并发送到后端（不在这里训练）
+          if (prevStateForRL && previousStateRef.current && experienceCollectorRef.current) {
+            episodeStepsRef.current++;
+            const done = checkCollision(newState);
+            
+            // 计算动作索引（基于方向变化）
+            const prevDir = previousStateRef.current.direction;
+            const currDir = newState.direction;
+            let action = 0;
+            if (currDir.x === 1) action = 3; // 右
+            else if (currDir.x === -1) action = 2; // 左
+            else if (currDir.y === 1) action = 1; // 下
+            else if (currDir.y === -1) action = 0; // 上
+            
+            // 记录经验（会批量发送到后端）
+            experienceCollectorRef.current.recordStep(
+              previousStateRef.current,
+              action,
+              newState,
+              done
+            );
+          }
 
           // 检测碰撞
           if (checkCollision(newState)) {
-            return endGame(newState);
+            const endedState = endGame(newState);
+            
+            // RL推理模式：更新统计信息
+            if (newState.controlMode === 'rl' && rlInference.isInferenceMode) {
+              episodeRef.current++;
+              rlInference.updateStats(
+                episodeRef.current,
+                endedState.score,
+                episodeStepsRef.current
+              );
+              episodeStepsRef.current = 0;
+              previousStateRef.current = null;
+              rlInference.resetEpisode();
+              
+              // 确保经验已发送
+              if (experienceCollectorRef.current) {
+                experienceCollectorRef.current.flush();
+              }
+              
+              // 自动重新开始
+              setTimeout(() => {
+                setState(prev => restartGame(createInitialGameState('rl')));
+              }, 100);
+            }
+            
+            return endedState;
+          }
+          
+          // RL推理模式：保存当前状态用于下次经验收集
+          if (newState.controlMode === 'rl' && rlInference.isInferenceMode) {
+            previousStateRef.current = { ...newState };
           }
 
           accumulatorRef.current -= config.game.speedMs;
@@ -92,7 +197,7 @@ export function useGame() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [state.gameRunning, state.controlMode]);
+  }, [state.gameRunning, state.controlMode, rlInference.isInferenceMode]);
 
   // 同步分数和模式到本地状态
   useEffect(() => {
@@ -151,6 +256,12 @@ export function useGame() {
         case 'Digit2': // 选择AI自动控制
           handleSetControlMode('ai');
           break;
+        case 'Digit3': // 选择RL推理模式
+          handleSetControlMode('rl');
+          if (!rlInference.isInferenceMode) {
+            rlInference.startInference();
+          }
+          break;
         case 'Space':
           if (!state.gameRunning) {
             if (state.gameOver) {
@@ -162,7 +273,7 @@ export function useGame() {
           break;
       }
     },
-    [state.gameRunning, state.gameOver, handleStart, handleRestart, handleSetControlMode]
+    [state.gameRunning, state.gameOver, handleStart, handleRestart, handleSetControlMode, rlInference]
   );
 
   // 绑定键盘事件
@@ -173,6 +284,15 @@ export function useGame() {
     };
   }, [handleKeyDown]);
 
+  // 当切换到RL模式时，自动开始推理
+  useEffect(() => {
+    if (mode === 'rl' && !rlInference.isInferenceMode) {
+      rlInference.startInference();
+    } else if (mode !== 'rl' && rlInference.isInferenceMode) {
+      rlInference.stopInference();
+    }
+  }, [mode, rlInference]);
+
   return {
     state,
     score,
@@ -180,6 +300,6 @@ export function useGame() {
     handleStart,
     handleRestart,
     handleSetControlMode,
+    rlInference, // 暴露RL推理功能
   };
 }
-

@@ -11,7 +11,11 @@ interface ToolbarProps {
 
 export function Toolbar({ mode, score, onStart, onRestart }: ToolbarProps) {
   const modeText =
-    mode === 'menu' ? '菜单' : mode === 'manual' ? '人工' : 'AI';
+    mode === 'menu' ? '菜单' 
+    : mode === 'manual' ? '人工' 
+    : mode === 'ai' ? 'AI' 
+    : mode === 'rl' ? 'RL推理' 
+    : '未知';
 
   return (
     <div className="toolbar">

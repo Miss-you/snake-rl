@@ -1,0 +1,50 @@
+[MASTER]
+# 使用多个进程加速检查
+jobs=0
+
+# 忽略的文件和目录
+ignore=venv,env,.venv,__pycache__,migrations,node_modules
+
+# 忽略的模式
+ignore-patterns=test_.*\.py
+
+[MESSAGES CONTROL]
+# 禁用某些警告
+disable=
+    missing-docstring,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-instance-attributes,
+    too-many-locals,
+    import-error,
+    no-member,
+    too-many-branches,
+    too-many-statements
+
+[FORMAT]
+# 最大行长度
+max-line-length=120
+
+# 缩进
+indent-string='    '
+
+[BASIC]
+# 命名规范
+# 类名：PascalCase
+# 函数名：snake_case
+# 常量：UPPER_CASE
+good-names=i,j,k,ex,Run,_,id,db
+
+[TYPECHECK]
+# 忽略缺失的导入
+ignored-modules=torch,torchvision,numpy
+
+[DESIGN]
+# 最大参数数量
+max-args=8
+max-attributes=15
+max-locals=20
+max-returns=6
+max-branches=15
+max-statements=60
+
