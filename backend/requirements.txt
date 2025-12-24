@@ -1,0 +1,28 @@
+# Web框架
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# 数据处理
+pydantic==2.5.0
+pydantic-settings==2.1.0
+numpy==1.24.3
+
+# 机器学习
+torch==2.1.0
+torchvision==0.16.0
+
+# 可选：高级RL库
+# stable-baselines3==2.2.0
+# gymnasium==0.29.1
+
+# 数据库（可选）
+# sqlalchemy==2.0.23
+# sqlite3  # Python内置
+
+# Redis（可选，用于经验缓冲区）
+# redis==5.0.1
+
+# 工具
+python-dotenv==1.0.0
+python-json-logger==2.0.7
