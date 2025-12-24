@@ -105,9 +105,43 @@ npm start
 - **Canvas API** - 游戏渲染
 - **React Hooks** - 状态管理
 
+## 强化学习（Reinforcement Learning）
+
+项目已准备好强化学习的基础设施！
+
+### 已实现的功能
+
+- ✅ **状态提取器** (`lib/rl/stateExtractor.ts`) - 将游戏状态转换为特征向量
+- ✅ **奖励计算器** (`lib/rl/rewardCalculator.ts`) - 根据游戏事件计算奖励
+- ✅ **Q-Learning算法** (`lib/rl/qLearning.ts`) - 基础的强化学习算法实现
+- ✅ **类型定义** (`lib/rl/types.ts`) - RL相关的TypeScript类型
+- ✅ **训练配置** (`lib/rl/config.ts`) - 可配置的训练参数
+
+### 学习资源
+
+- 📖 [强化学习学习指南](./docs/reinforcement-learning.md) - 详细的理论和实践指南
+- 📖 [RL常见问题解答](./docs/rl-faq.md) - 解答常见问题
+- 📖 [RL实施计划](./docs/rl-implementation-plan.md) - 分阶段实施路线图
+
+### 快速开始RL训练
+
+1. **理解概念**：阅读 `docs/reinforcement-learning.md`
+2. **实现Q-Learning**：使用已实现的 `lib/rl/qLearning.ts`
+3. **集成训练**：将RL Agent集成到游戏循环中
+4. **观察效果**：训练并调优超参数
+
+### 下一步
+
+- [ ] 集成Q-Learning到游戏循环
+- [ ] 实现DQN（Deep Q-Network）
+- [ ] 添加训练可视化界面
+- [ ] （可选）搭建Python后端训练服务
+
 ## 开发计划
 
-- [ ] 添加强化学习算法
+- [x] 添加强化学习基础设施
+- [ ] 集成Q-Learning训练
+- [ ] 实现DQN算法
 - [ ] 添加游戏难度选择
 - [ ] 添加排行榜功能
 - [ ] 添加音效和背景音乐
